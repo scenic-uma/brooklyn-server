@@ -257,6 +257,13 @@ public interface SoftwareProcess extends Entity, Startable {
             "softwareProcess.lifecycleTasks", "An object that handles lifecycle of an entity's associated machine.",
             new SoftwareProcessDriverLifecycleEffectorTasks());
 
+    @Beta
+    @SetFromFlag("paasLifecycleEffectorTasks")
+    ConfigKey<PaasLifecycleEffectorTasks> PAAS_LIFECYCLE_EFFECTOR_TASKS = ConfigKeys.newConfigKey(
+            PaasLifecycleEffectorTasks.class,
+            "softwareProcess.paaslifecycleTasks", "An object that handles lifecycle of an entity's associated machine.",
+            new PaasLifecycleEffectorTasks());
+
     ConfigKey<Boolean> RETRIEVE_USAGE_METRICS = ConfigKeys.newBooleanConfigKey(
             "metrics.usage.retrieve",
             "Whether to retrieve the usage (e.g. performance) metrics",
