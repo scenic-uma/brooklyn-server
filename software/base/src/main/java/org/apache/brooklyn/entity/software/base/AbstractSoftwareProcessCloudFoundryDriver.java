@@ -33,34 +33,28 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * @{link AbstractSoftwareProcessDriver}.
  */
 @Beta
-public abstract class AbstractSoftwareProcessCloudFoundryDriver implements SoftwareProcessDriver {
+public abstract class AbstractSoftwareProcessCloudFoundryDriver
+        extends  AbstractSoftwareProcessPaasDriver {
 
 
     public static final Logger log = LoggerFactory
             .getLogger(AbstractSoftwareProcessCloudFoundryDriver.class);
 
-    private final CloudFoundryPaasLocation location;
-    protected final EntityLocal entity;
     CloudFoundryClient client;
 
     public AbstractSoftwareProcessCloudFoundryDriver(EntityLocal entity,
                                                      CloudFoundryPaasLocation location) {
-        this.entity = checkNotNull(entity, "entity");
-        this.location = checkNotNull(location, "location");
+        super(entity, location);
         init();
     }
 
     protected void init() {
-    }
-
-    @Override
-    public EntityLocal getEntity() {
-        return entity;
+        super.init();
     }
 
     @Override
     public CloudFoundryPaasLocation getLocation() {
-        return location;
+        return (CloudFoundryPaasLocation) super.getLocation();
     }
 
     protected CloudFoundryClient getClient() {
@@ -74,7 +68,7 @@ public abstract class AbstractSoftwareProcessCloudFoundryDriver implements Softw
 
     @Override
     public void rebind() {
-
+        //TODO: complete
     }
 
     @Override
@@ -84,8 +78,8 @@ public abstract class AbstractSoftwareProcessCloudFoundryDriver implements Softw
 
     protected void setUpClient() {
         if (client == null) {
-            location.setUpClient();
-            client = location.getCloudFoundryClient();
+            getLocation().setUpClient();
+            client = getLocation().getCloudFoundryClient();
             checkNotNull(client, "CloudFoundry client");
         }
     }
