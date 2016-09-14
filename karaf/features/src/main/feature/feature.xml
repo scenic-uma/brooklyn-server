@@ -213,6 +213,7 @@
 
     <feature name="brooklyn-software-base"  version="${project.version}"  description="Brooklyn Software Base">
         <bundle>mvn:org.apache.brooklyn/brooklyn-software-base/${project.version}</bundle>
+        <feature>brooklyn-locations-cloudfoundry</feature>
         <feature>brooklyn-software-winrm</feature>
         <feature>brooklyn-policy</feature>
         <!-- python dependency required but not supported since karaf cannot handle its runtime bindings -->
@@ -237,6 +238,19 @@
         <bundle dependency="true">mvn:${jclouds.groupId}/jclouds-core/${jclouds.version}</bundle>
         <bundle dependency="true">mvn:com.google.guava/guava/${guava.version}</bundle>
     </feature>
+
+
+
+    <feature name="brooklyn-locations-cloudfoundry" version="${project.version}" description="Brooklyn Cloud Foundry Location Targets">
+        <bundle>mvn:org.apache.brooklyn/brooklyn-locations-cloudfoundry/${project.version}</bundle>
+
+        <bundle dependency="true">wrap:mvn:org.cloudfoundry/cloudfoundry-client-lib/${cloudfoundry.client.version}</bundle>
+
+        <bundle dependency="true">wrap:mvn:org.springframework/spring-webmvc/${springframework-webmvc.version}</bundle>
+        <bundle dependency="true">wrap:mvn:org.springframework.security.oauth/spring-security-oauth2/${springframework-security.version}</bundle>
+    </feature>
+
+
 
     <feature name="brooklyn-software-network" version="${project.version}" description="Brooklyn Network Software Entities">
         <bundle>mvn:org.apache.brooklyn/brooklyn-software-network/${project.version}</bundle>

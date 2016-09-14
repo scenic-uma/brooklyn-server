@@ -24,6 +24,7 @@
     <artifactId>brooklyn-locations-cloudfoundry</artifactId>
     <packaging>jar</packaging>
     <name>Brooklyn Cloudfoundry Locations Targets</name>
+
     <description>
         Support CloudFoundry PaaS services API for deploying applications
     </description>
@@ -34,12 +35,6 @@
         <version>0.9.0</version>  <!-- BROOKLYN_VERSION -->
         <relativePath>../../parent/pom.xml</relativePath>
     </parent>
-
-    <properties>
-        <cloudfoundry.client.version>1.1.2</cloudfoundry.client.version>
-        <springframework-webmvc.version>4.1.4.RELEASE</springframework-webmvc.version>
-        <springframework-security.version>2.0.4.RELEASE</springframework-security.version>
-    </properties>
 
     <dependencies>
         <dependency>
