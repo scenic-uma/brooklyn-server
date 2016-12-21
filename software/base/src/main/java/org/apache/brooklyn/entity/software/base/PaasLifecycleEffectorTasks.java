@@ -19,7 +19,9 @@
 package org.apache.brooklyn.entity.software.base;
 
 
-import com.google.common.annotations.Beta;
+import java.util.Collection;
+import java.util.concurrent.Callable;
+
 import org.apache.brooklyn.api.location.Location;
 import org.apache.brooklyn.api.mgmt.TaskAdaptable;
 import org.apache.brooklyn.core.entity.Entities;
@@ -34,8 +36,7 @@ import org.apache.brooklyn.util.exceptions.Exceptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.concurrent.Callable;
+import com.google.common.annotations.Beta;
 
 @Beta
 public class PaasLifecycleEffectorTasks extends AbstractLifecycleEffectorTasks {
@@ -52,12 +53,28 @@ public class PaasLifecycleEffectorTasks extends AbstractLifecycleEffectorTasks {
         ServiceStateLogic.setExpectedState(entity(), Lifecycle.STARTING);
         try {
 
-            PaasLocation location = (PaasLocation) getLocation(locations);
+            final PaasLocation location = (PaasLocation) getLocation(locations);
 
-            preStartProcess(location);
-            startProcess();
-            postStartProcess();
+            DynamicTasks.queue("preStart", new Runnable() {
+                @Override
+                public void run() {
+                    preStartProcess(location);
+                }
+            });
 
+            DynamicTasks.queue("start (process)", new Runnable() {
+                @Override
+                public void run() {
+                    startProcess();
+                }
+            });
+
+            DynamicTasks.queue("post-start check-running", new Runnable() {
+                public void run() {
+                    postStartProcess();
+                }
+            });
+            DynamicTasks.waitForLast();
             ServiceStateLogic.setExpectedState(entity(), Lifecycle.RUNNING);
         } catch (Throwable t) {
             ServiceStateLogic.setExpectedState(entity(), Lifecycle.ON_FIRE);
@@ -198,7 +215,6 @@ public class PaasLifecycleEffectorTasks extends AbstractLifecycleEffectorTasks {
     protected void postStopProcess() {
         entity().postStop();
     }
-
 
 
 }

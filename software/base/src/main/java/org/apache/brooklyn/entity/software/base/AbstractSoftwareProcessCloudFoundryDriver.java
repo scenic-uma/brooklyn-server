@@ -20,7 +20,9 @@ package org.apache.brooklyn.entity.software.base;
 
 import com.google.common.annotations.Beta;
 import org.apache.brooklyn.api.entity.EntityLocal;
+import org.apache.brooklyn.core.entity.BrooklynConfigKeys;
 import org.apache.brooklyn.location.cloudfoundry.CloudFoundryPaasLocation;
+import org.apache.brooklyn.util.core.task.DynamicTasks;
 import org.cloudfoundry.client.lib.CloudFoundryClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,7 +75,12 @@ public abstract class AbstractSoftwareProcessCloudFoundryDriver
 
     @Override
     public void start() {
-        setUpClient();
+        DynamicTasks.queue("setup client", new Runnable() {
+            public void run() {
+                //waitForConfigKey(BrooklynConfigKeys.SETUP_LATCH);
+                setUpClient();
+            }
+        });
     }
 
     protected void setUpClient() {

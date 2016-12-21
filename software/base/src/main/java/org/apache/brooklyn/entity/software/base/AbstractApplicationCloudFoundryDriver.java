@@ -18,12 +18,14 @@
  */
 package org.apache.brooklyn.entity.software.base;
 
-import com.google.common.annotations.Beta;
 import org.apache.brooklyn.api.entity.EntityLocal;
 import org.apache.brooklyn.location.cloudfoundry.CloudFoundryPaasLocation;
+import org.apache.brooklyn.util.core.task.DynamicTasks;
 import org.cloudfoundry.client.lib.domain.CloudApplication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.annotations.Beta;
 
 @Beta
 public abstract class AbstractApplicationCloudFoundryDriver
@@ -81,26 +83,50 @@ public abstract class AbstractApplicationCloudFoundryDriver
 
     @Override
     public void start() {
-        super.start();
 
-        preDeploy();
-        deploy();
-        preLaunch();
-        launch();
-        postLaunch();
+
+        super.start();
+        DynamicTasks.queue("pre deploy", new Runnable() {
+            public void run() {
+                preDeploy();
+            }
+        });
+        DynamicTasks.queue("deploy", new Runnable() {
+            public void run() {
+                deploy();
+            }
+        });
+        DynamicTasks.queue("pre-launch", new Runnable() {
+            public void run() {
+                preLaunch();
+            }
+        });
+        DynamicTasks.queue("launch", new Runnable() {
+            public void run() {
+                launch();
+            }
+        });
+        DynamicTasks.queue("post-launch", new Runnable() {
+            public void run() {
+                postLaunch();
+            }
+        });
     }
 
-    public void preDeploy() {}
+    public void preDeploy() {
+    }
 
     public abstract void deploy();
 
-    public void preLaunch() {}
+    public void preLaunch() {
+    }
 
     public void launch() {
         getClient().startApplication(getApplicationName());
     }
 
-    public void postLaunch() {}
+    public void postLaunch() {
+    }
 
     @Override
     public void restart() {
