@@ -23,6 +23,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -37,6 +38,7 @@ import org.apache.brooklyn.api.location.LocationSpec;
 import org.apache.brooklyn.api.objs.SpecParameter;
 import org.apache.brooklyn.api.policy.Policy;
 import org.apache.brooklyn.api.policy.PolicySpec;
+import org.apache.brooklyn.api.relations.EntitySpecRelations;
 import org.apache.brooklyn.api.sensor.Enricher;
 import org.apache.brooklyn.api.sensor.EnricherSpec;
 import org.apache.brooklyn.config.ConfigKey;
@@ -46,6 +48,7 @@ import org.apache.brooklyn.core.entity.AbstractEntity;
 import org.apache.brooklyn.core.entity.Entities;
 import org.apache.brooklyn.core.entity.EntityDynamicType;
 import org.apache.brooklyn.core.entity.EntityInternal;
+import org.apache.brooklyn.core.entity.EntityRelations;
 import org.apache.brooklyn.core.mgmt.BrooklynTaskTags;
 import org.apache.brooklyn.core.mgmt.internal.ManagementContextInternal;
 import org.apache.brooklyn.core.policy.AbstractPolicy;
@@ -61,33 +64,36 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Optional;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
- * Creates entities (and proxies) of required types, given the 
- * 
+ * Creates entities (and proxies) of required types, given the
+ * <p/>
  * This is an internal class for use by core-brooklyn. End-users are strongly discouraged from
  * using this class directly.
- * 
+ * <p/>
  * Used in three situations:
  * <ul>
- *   <li>Normal entity creation (through entityManager.createEntity)
- *   <li>rebind (i.e. Brooklyn restart, or promotion of HA standby manager node)
- *   <li>yaml parsing
+ * <li>Normal entity creation (through entityManager.createEntity)
+ * <li>rebind (i.e. Brooklyn restart, or promotion of HA standby manager node)
+ * <li>yaml parsing
  * </ul>
- * 
+ *
  * @author aled
  */
 public class InternalEntityFactory extends InternalFactory {
 
     private static final Logger log = LoggerFactory.getLogger(InternalEntityFactory.class);
-    
+
     private final EntityTypeRegistry entityTypeRegistry;
     private final InternalPolicyFactory policyFactory;
-    
+
     public InternalEntityFactory(ManagementContextInternal managementContext, EntityTypeRegistry entityTypeRegistry, InternalPolicyFactory policyFactory) {
         super(managementContext);
         this.entityTypeRegistry = checkNotNull(entityTypeRegistry, "entityTypeRegistry");
@@ -100,11 +106,11 @@ public class InternalEntityFactory extends InternalFactory {
         if (spec.getType().isInterface()) {
             interfaces.add(spec.getType());
         } else {
-            log.warn("EntitySpec declared in terms of concrete type "+spec.getType()+"; should be supplied in terms of interface");
+            log.warn("EntitySpec declared in terms of concrete type " + spec.getType() + "; should be supplied in terms of interface");
             interfaces.addAll(Reflections.getAllInterfaces(spec.getType()));
         }
         interfaces.addAll(spec.getAdditionalInterfaces());
-        
+
         return createEntityProxy(interfaces, entity);
     }
 
@@ -135,7 +141,7 @@ public class InternalEntityFactory extends InternalFactory {
             loaders.add(iface.getClassLoader());
         }
 
-        AggregateClassLoader aggregateClassLoader =  AggregateClassLoader.newInstanceWithNoLoaders();
+        AggregateClassLoader aggregateClassLoader = AggregateClassLoader.newInstanceWithNoLoaders();
         for (ClassLoader cl : loaders) {
             aggregateClassLoader.addLast(cl);
         }
@@ -163,12 +169,14 @@ public class InternalEntityFactory extends InternalFactory {
         }
     }
 
-    /** creates a new entity instance from a spec, with all children, policies, etc,
+    /**
+     * creates a new entity instance from a spec, with all children, policies, etc,
      * fully initialized ({@link AbstractEntity#init()} invoked) and ready for
-     * management -- commonly the caller will next call 
+     * management -- commonly the caller will next call
      * {@link Entities#manage(Entity)} (if it's in a managed application)
      * or {@link Entities#startManagement(org.apache.brooklyn.api.entity.Application, org.apache.brooklyn.api.management.ManagementContext)}
-     * (if it's an application) */
+     * (if it's an application)
+     */
     public <T extends Entity> T createEntity(EntitySpec<T> spec) {
         /* Order is important here. Changed Jul 2014 when supporting children in spec.
          * (Previously was much simpler, and parent was set right after running initializers; and there were no children.)
@@ -181,50 +189,68 @@ public class InternalEntityFactory extends InternalFactory {
          */
 
         // (maps needed because we need the spec, and we need to keep the AbstractEntity to call init, not a proxy)
-        Map<String,Entity> entitiesByEntityId = MutableMap.of();
-        Map<String,EntitySpec<?>> specsByEntityId = MutableMap.of();
-        
+        Map<String, Entity> entitiesByEntityId = MutableMap.of();
+        Map<String, EntitySpec<?>> specsByEntityId = MutableMap.of();
+
         T entity = createEntityAndDescendantsUninitialized(spec, entitiesByEntityId, specsByEntityId);
         initEntityAndDescendants(entity.getId(), entitiesByEntityId, specsByEntityId);
+        relations(specsByEntityId, entitiesByEntityId);
         return entity;
     }
-    
-    protected <T extends Entity> T createEntityAndDescendantsUninitialized(EntitySpec<T> spec, Map<String,Entity> entitiesByEntityId, Map<String,EntitySpec<?>> specsByEntityId) {
+
+    public void relations(Map<String, EntitySpec<?>> specsByEntityId, Map<String, Entity> entitiesByEntityId) {
+        for (Map.Entry<String, EntitySpec<?>> entry : specsByEntityId.entrySet()) {
+            EntitySpec<?> spec = entry.getValue();
+            String entityId = entry.getKey();
+            Optional<List<EntitySpec>> optional = spec.getRelations().getRelations(EntitySpecRelations.TARGET_TYPE);
+            if (optional.isPresent()) {
+                BiMap<EntitySpec<?>, String> entityIdBySpecs = HashBiMap.create(specsByEntityId).inverse();
+                for (EntitySpec targetSpec : optional.get()) {
+                    Entity entity = entitiesByEntityId.get(entityId);
+                    String targetEntityId = entityIdBySpecs.get(targetSpec);
+                    Entity targetEntity = entitiesByEntityId.get(targetEntityId);
+                    entity.relations().add(EntityRelations.HAS_TARGET, targetEntity);
+                }
+            }
+        }
+    }
+
+    protected <T extends Entity> T createEntityAndDescendantsUninitialized(EntitySpec<T> spec, Map<String, Entity> entitiesByEntityId, Map<String, EntitySpec<?>> specsByEntityId) {
         if (spec.getFlags().containsKey("parent") || spec.getFlags().containsKey("owner")) {
-            throw new IllegalArgumentException("Spec's flags must not contain parent or owner; use spec.parent() instead for "+spec);
+            throw new IllegalArgumentException("Spec's flags must not contain parent or owner; use spec.parent() instead for " + spec);
         }
         if (spec.getFlags().containsKey("id")) {
-            throw new IllegalArgumentException("Spec's flags must not contain id; use spec.id() instead for "+spec);
+            throw new IllegalArgumentException("Spec's flags must not contain id; use spec.id() instead for " + spec);
         }
-        
+
         try {
             Class<? extends T> clazz = getImplementedBy(spec);
-            
+
             T entity = constructEntity(clazz, spec);
-            
+
             loadUnitializedEntity(entity, spec);
 
             entitiesByEntityId.put(entity.getId(), entity);
             specsByEntityId.put(entity.getId(), spec);
 
             for (EntitySpec<?> childSpec : spec.getChildren()) {
-                if (childSpec.getParent()!=null) {
+                if (childSpec.getParent() != null) {
                     if (!childSpec.getParent().equals(entity)) {
-                        throw new IllegalStateException("Spec "+childSpec+" has parent "+childSpec.getParent()+" defined, "
-                            + "but it is defined as a child of "+entity);
+                        throw new IllegalStateException("Spec " + childSpec + " has parent " + childSpec.getParent() + " defined, "
+                                + "but it is defined as a child of " + entity);
                     }
-                    log.warn("Child spec "+childSpec+" is already set with parent "+entity+"; how did this happen?!");
+                    log.warn("Child spec " + childSpec + " is already set with parent " + entity + "; how did this happen?!");
                 }
                 childSpec.parent(entity);
                 Entity child = createEntityAndDescendantsUninitialized(childSpec, entitiesByEntityId, specsByEntityId);
                 entity.addChild(child);
             }
-            
-            for (Entity member: spec.getMembers()) {
+
+            for (Entity member : spec.getMembers()) {
                 if (!(entity instanceof Group)) {
-                    throw new IllegalStateException("Entity "+entity+" must be a group to add members "+spec.getMembers());
+                    throw new IllegalStateException("Entity " + entity + " must be a group to add members " + spec.getMembers());
                 }
-                ((Group)entity).addMember(member);
+                ((Group) entity).addMember(member);
             }
 
             for (Group group : spec.getGroups()) {
@@ -232,38 +258,38 @@ public class InternalEntityFactory extends InternalFactory {
             }
 
             return entity;
-            
+
         } catch (Exception e) {
             throw Exceptions.propagate(e);
         }
     }
-    
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
     protected <T extends Entity> T loadUnitializedEntity(final T entity, final EntitySpec<T> spec) {
         try {
-            if (spec.getDisplayName()!=null)
-                ((AbstractEntity)entity).setDisplayName(spec.getDisplayName());
-            
-            if (spec.getCatalogItemId()!=null) {
-                ((AbstractEntity)entity).setCatalogItemId(spec.getCatalogItemId());
+            if (spec.getDisplayName() != null)
+                ((AbstractEntity) entity).setDisplayName(spec.getDisplayName());
+
+            if (spec.getCatalogItemId() != null) {
+                ((AbstractEntity) entity).setCatalogItemId(spec.getCatalogItemId());
             }
-            
+
             entity.tags().addTags(spec.getTags());
-            addSpecParameters(spec, ((AbstractEntity)entity).getMutableEntityType());
-            
-            ((AbstractEntity)entity).configure(MutableMap.copyOf(spec.getFlags()));
+            addSpecParameters(spec, ((AbstractEntity) entity).getMutableEntityType());
+
+            ((AbstractEntity) entity).configure(MutableMap.copyOf(spec.getFlags()));
             for (Map.Entry<ConfigKey<?>, Object> entry : spec.getConfig().entrySet()) {
-                entity.config().set((ConfigKey)entry.getKey(), entry.getValue());
+                entity.config().set((ConfigKey) entry.getKey(), entry.getValue());
             }
-            
+
             Entity parent = spec.getParent();
             if (parent != null) {
-                parent = (parent instanceof AbstractEntity) ? ((AbstractEntity)parent).getProxyIfAvailable() : parent;
+                parent = (parent instanceof AbstractEntity) ? ((AbstractEntity) parent).getProxyIfAvailable() : parent;
                 entity.setParent(parent);
             }
-            
+
             return entity;
-            
+
         } catch (Exception e) {
             throw Exceptions.propagate(e);
         }
@@ -272,7 +298,7 @@ public class InternalEntityFactory extends InternalFactory {
     private void addSpecParameters(EntitySpec<?> spec, EntityDynamicType edType) {
         for (SpecParameter<?> param : spec.getParameters()) {
             edType.addConfigKey(param.getConfigKey());
-            if (param.getSensor()!=null) edType.addSensor(param.getSensor());
+            if (param.getSensor() != null) edType.addSensor(param.getSensor());
         }
     }
 
@@ -289,15 +315,15 @@ public class InternalEntityFactory extends InternalFactory {
             queue.addAll(e1.getChildren());
         }
     }
-    
-    protected <T extends Entity> void initEntityAndDescendants(String entityId, final Map<String,Entity> entitiesByEntityId, final Map<String,EntitySpec<?>> specsByEntityId) {
+
+    protected <T extends Entity> void initEntityAndDescendants(String entityId, final Map<String, Entity> entitiesByEntityId, final Map<String, EntitySpec<?>> specsByEntityId) {
         final Entity entity = entitiesByEntityId.get(entityId);
         final EntitySpec<?> spec = specsByEntityId.get(entityId);
-        
-        if (entity==null || spec==null) {
-            log.debug("Skipping initialization of "+entityId+" found as child of entity being initialized, "
-                + "but this child is not one we created; likely it was created by an initializer, "
-                + "and thus it should be already fully initialized.");
+
+        if (entity == null || spec == null) {
+            log.debug("Skipping initialization of " + entityId + " found as child of entity being initialized, "
+                    + "but this child is not one we created; likely it was created by an initializer, "
+                    + "and thus it should be already fully initialized.");
             return;
         }
 
@@ -318,101 +344,104 @@ public class InternalEntityFactory extends InternalFactory {
          * which currently show up at the top level once the initializer task completes.
          * TODO It would be nice if these schedule tasks were grouped in a bucket! 
          */
-        ((EntityInternal)entity).getExecutionContext().submit(Tasks.builder().dynamic(false).displayName("Entity initialization")
+        ((EntityInternal) entity).getExecutionContext().submit(Tasks.builder().dynamic(false).displayName("Entity initialization")
                 .tag(BrooklynTaskTags.tagForContextEntity(entity))
                 .tag(BrooklynTaskTags.TRANSIENT_TASK_TAG)
                 .body(new Runnable() {
-            @Override
-            public void run() {
-                ((AbstractEntity)entity).init();
+                    @Override
+                    public void run() {
+                        ((AbstractEntity) entity).init();
 
-                for (LocationSpec<?> locationSpec : spec.getLocationSpecs()) {
-                    ((AbstractEntity)entity).addLocations(MutableList.of(
-                        managementContext.getLocationManager().createLocation(locationSpec)));
-                }
-                ((AbstractEntity)entity).addLocations(spec.getLocations());
+                        for (LocationSpec<?> locationSpec : spec.getLocationSpecs()) {
+                            ((AbstractEntity) entity).addLocations(MutableList.of(
+                                    managementContext.getLocationManager().createLocation(locationSpec)));
+                        }
+                        ((AbstractEntity) entity).addLocations(spec.getLocations());
 
-                for (EntityInitializer initializer: spec.getInitializers()) {
-                    initializer.apply((EntityInternal)entity);
-                }
+                        for (EntityInitializer initializer : spec.getInitializers()) {
+                            initializer.apply((EntityInternal) entity);
+                        }
 
-                for (Enricher enricher : spec.getEnrichers()) {
-                    entity.enrichers().add(enricher);
-                }
+                        for (Enricher enricher : spec.getEnrichers()) {
+                            entity.enrichers().add(enricher);
+                        }
 
-                for (EnricherSpec<?> enricherSpec : spec.getEnricherSpecs()) {
-                    entity.enrichers().add(policyFactory.createEnricher(enricherSpec));
-                }
+                        for (EnricherSpec<?> enricherSpec : spec.getEnricherSpecs()) {
+                            entity.enrichers().add(policyFactory.createEnricher(enricherSpec));
+                        }
 
-                for (Policy policy : spec.getPolicies()) {
-                    entity.policies().add((AbstractPolicy)policy);
-                }
+                        for (Policy policy : spec.getPolicies()) {
+                            entity.policies().add((AbstractPolicy) policy);
+                        }
 
-                for (PolicySpec<?> policySpec : spec.getPolicySpecs()) {
-                    entity.policies().add(policyFactory.createPolicy(policySpec));
-                }
+                        for (PolicySpec<?> policySpec : spec.getPolicySpecs()) {
+                            entity.policies().add(policyFactory.createPolicy(policySpec));
+                        }
 
-                for (Entity child: entity.getChildren()) {
-                    // right now descendants are initialized depth-first (see the getUnchecked() call below)
-                    // they could be done in parallel, but OTOH initializers should be very quick
-                    initEntityAndDescendants(child.getId(), entitiesByEntityId, specsByEntityId);
-                }
-            }
-        }).build()).getUnchecked();
+                        for (Entity child : entity.getChildren()) {
+                            // right now descendants are initialized depth-first (see the getUnchecked() call below)
+                            // they could be done in parallel, but OTOH initializers should be very quick
+                            initEntityAndDescendants(child.getId(), entitiesByEntityId, specsByEntityId);
+                        }
+                    }
+                }).build()).getUnchecked();
     }
-    
+
     /**
      * Constructs an entity, i.e. instantiate the actual class given a spec,
      * and sets the entity's proxy. Used by this factory to {@link #createEntity(EntitySpec)}
      * and also used during rebind.
-     * <p> 
-     * If {@link EntitySpec#id(String)} was set then uses that to override the entity's id, 
+     * <p/>
+     * If {@link EntitySpec#id(String)} was set then uses that to override the entity's id,
      * but that behaviour is deprecated.
-     * <p>
-     * The new-style no-arg constructor is preferred, and   
+     * <p/>
+     * The new-style no-arg constructor is preferred, and
      * configuration from the {@link EntitySpec} is <b>not</b> normally applied,
      * although for old-style entities flags from the spec are passed to the constructor.
-     * <p>
+     * <p/>
+     *
      * @deprecated since 0.9.0 becoming private
-     */ @Deprecated
+     */
+    @Deprecated
     public <T extends Entity> T constructEntity(Class<? extends T> clazz, EntitySpec<T> spec) {
         T entity = constructEntityImpl(clazz, spec, null, null);
-        if (((AbstractEntity)entity).getProxy() == null) ((AbstractEntity)entity).setProxy(createEntityProxy(spec, entity));
+        if (((AbstractEntity) entity).getProxy() == null)
+            ((AbstractEntity) entity).setProxy(createEntityProxy(spec, entity));
         return entity;
     }
 
     /**
      * Constructs a new-style entity (fails if no no-arg constructor).
      * Sets the entity's id and proxy.
-     * <p>
+     * <p/>
      * For use during rebind.
      */
     // TODO would it be cleaner to have rebind create a spec and deprecate this?
     public <T extends Entity> T constructEntity(Class<T> clazz, Iterable<Class<?>> interfaces, String entityId) {
         if (!isNewStyle(clazz)) {
-            throw new IllegalStateException("Cannot construct old-style entity "+clazz);
+            throw new IllegalStateException("Cannot construct old-style entity " + clazz);
         }
         checkNotNull(entityId, "entityId");
         checkState(interfaces != null && !Iterables.isEmpty(interfaces), "must have at least one interface for entity %s:%s", clazz, entityId);
-        
+
         T entity = constructEntityImpl(clazz, null, null, entityId);
-        if (((AbstractEntity)entity).getProxy() == null) {
+        if (((AbstractEntity) entity).getProxy() == null) {
             Entity proxy = managementContext.getEntityManager().getEntity(entity.getId());
-            if (proxy==null) {
+            if (proxy == null) {
                 // normal case, proxy does not exist
                 proxy = createEntityProxy(interfaces, entity);
             } else {
                 // only if rebinding to existing; don't create a new proxy, then we have proxy explosion
                 // but callers must be careful that the entity's proxy does not yet point to it
             }
-            ((AbstractEntity)entity).setProxy(proxy);
+            ((AbstractEntity) entity).setProxy(proxy);
         }
         return entity;
     }
 
     private <T extends Entity> T constructEntityImpl(Class<? extends T> clazz, EntitySpec<?> optionalSpec, Map<String, ?> optionalConstructorFlags, String optionalEntityId) {
         T entity = construct(clazz, optionalSpec, optionalConstructorFlags);
-        
+
         if (optionalEntityId != null) {
             FlagUtils.setFieldsFromFlags(ImmutableMap.of("id", optionalEntityId), entity);
         }
@@ -420,19 +449,19 @@ public class InternalEntityFactory extends InternalFactory {
             FlagUtils.setFieldsFromFlags(ImmutableMap.of("mgmt", managementContext), entity);
         }
         managementContext.prePreManage(entity);
-        ((AbstractEntity)entity).setManagementContext(managementContext);
+        ((AbstractEntity) entity).setManagementContext(managementContext);
 
         return entity;
     }
 
     @Override
-    protected <T> T constructOldStyle(Class<T> clazz, Map<String,?> flags) throws InstantiationException, IllegalAccessException, InvocationTargetException {
+    protected <T> T constructOldStyle(Class<T> clazz, Map<String, ?> flags) throws InstantiationException, IllegalAccessException, InvocationTargetException {
         if (flags.containsKey("parent") || flags.containsKey("owner")) {
-            throw new IllegalArgumentException("Spec's flags must not contain parent or owner; use spec.parent() instead for "+clazz);
+            throw new IllegalArgumentException("Spec's flags must not contain parent or owner; use spec.parent() instead for " + clazz);
         }
         return super.constructOldStyle(clazz, flags);
     }
-    
+
     private <T extends Entity> Class<? extends T> getImplementedBy(EntitySpec<T> spec) {
         if (spec.getImplementation() != null) {
             return spec.getImplementation();

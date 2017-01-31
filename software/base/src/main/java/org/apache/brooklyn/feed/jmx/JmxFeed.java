@@ -39,6 +39,7 @@ import org.apache.brooklyn.core.feed.AttributePollHandler;
 import org.apache.brooklyn.core.feed.DelegatingPollHandler;
 import org.apache.brooklyn.core.feed.PollHandler;
 import org.apache.brooklyn.core.feed.Poller;
+import org.apache.brooklyn.entity.java.JmxSupport;
 import org.apache.brooklyn.entity.software.base.SoftwareProcessImpl;
 import org.apache.brooklyn.util.time.Duration;
 import org.slf4j.Logger;
@@ -226,7 +227,8 @@ public class JmxFeed extends AbstractFeed {
 
     @Override
     public void setEntity(EntityLocal entity) {
-        if (getConfig(HELPER) == null) {
+        if (getConfig(HELPER) == null)
+                 {
             JmxHelper helper = new JmxHelper(entity);
             setConfig(HELPER, helper);
             setConfig(OWN_HELPER, true);

@@ -31,6 +31,7 @@ import org.apache.brooklyn.api.location.Location;
 import org.apache.brooklyn.api.location.LocationSpec;
 import org.apache.brooklyn.api.policy.Policy;
 import org.apache.brooklyn.api.policy.PolicySpec;
+import org.apache.brooklyn.api.relations.EntitySpecRelations;
 import org.apache.brooklyn.api.sensor.Enricher;
 import org.apache.brooklyn.api.sensor.EnricherSpec;
 import org.apache.brooklyn.util.collections.MutableList;
@@ -116,6 +117,7 @@ public class EntitySpec<T extends Entity> extends AbstractBrooklynObjectSpec<T,E
     private final List<Entity> members = Lists.newArrayList();
     private final List<Group> groups = Lists.newArrayList();
     private volatile boolean immutable;
+    private final EntitySpecRelations relations = new EntitySpecRelations(this);
     
     public EntitySpec(Class<T> type) {
         super(type);
@@ -431,6 +433,10 @@ public class EntitySpec<T extends Entity> extends AbstractBrooklynObjectSpec<T,E
 
     private void checkMutable() {
         if (immutable) throw new IllegalStateException("Cannot modify immutable entity spec "+this);
+    }
+
+    public EntitySpecRelations getRelations(){
+        return relations;
     }
     
 }

@@ -113,7 +113,7 @@ public class JmxHelper {
     /** constructs a JMX URL suitable for connecting to the given entity, being smart about JMX/RMI vs JMXMP */
     public static String toJmxUrl(EntityLocal entity) {
         String url = entity.getAttribute(UsesJmx.JMX_URL);
-        if (url != null) {
+        if ((url != null) && jmxUrlNotHasToBeModified(entity)) {
             return url;
         } else {
             new JmxSupport(entity, null).setJmxUrl();
@@ -166,11 +166,13 @@ public class JmxHelper {
     public JmxHelper(EntityLocal entity) {
         this(toJmxUrl(entity), entity, entity.getAttribute(UsesJmx.JMX_USER), entity.getAttribute(UsesJmx.JMX_PASSWORD));
         
-        if (entity.getAttribute(UsesJmx.JMX_URL) == null) {
+        if ((entity.getAttribute(UsesJmx.JMX_URL) == null) || jmxUrlHasToBeModified(entity)) {
             entity.sensors().set(UsesJmx.JMX_URL, url);
         }
     }
-    
+
+
+
     // TODO split this in to two classes, one for entities, and one entity-neutral
     // (simplifying set of constructors below)
     
@@ -201,7 +203,14 @@ public class JmxHelper {
     public void setMinTimeBetweenReconnectAttempts(int val) {
         minTimeBetweenReconnectAttempts = val;
     }
-    
+
+    private static boolean jmxUrlNotHasToBeModified(EntityLocal entity) {
+        return !jmxUrlHasToBeModified(entity);
+    }
+    private static boolean jmxUrlHasToBeModified(EntityLocal entity) {
+        return !new JmxSupport(entity, null).getJmxUrl().equals(entity.getAttribute(UsesJmx.JMX_URL));
+    }
+
     public String getUrl(){
         return url;
     }
