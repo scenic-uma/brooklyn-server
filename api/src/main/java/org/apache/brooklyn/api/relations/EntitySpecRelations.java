@@ -66,5 +66,9 @@ public class EntitySpecRelations {
         relations.put(target, MutableList.<EntitySpec>of());
     }
 
+    public int numberOfRelations(){
+        return relations.size();
+    }
+
 
 }
