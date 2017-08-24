@@ -26,6 +26,7 @@ import org.apache.brooklyn.util.collections.MutableList;
 import org.apache.brooklyn.util.collections.MutableMap;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
 
 
 public class EntitySpecRelations {
@@ -45,13 +46,22 @@ public class EntitySpecRelations {
         addRelationSpec(TARGET_TYPE, targetSpec);
     }
 
-    public Optional<List<EntitySpec>> getRelations(EntitySpecRelation relation)
-    {
+    public void addTargetRelationSpec(List<EntitySpec> targetSpecs) {
+        for (EntitySpec targetSpec : targetSpecs) {
+            addRelationSpec(TARGET_TYPE, targetSpec);
+        }
+    }
+
+    public Optional<List<EntitySpec>> getRelations(EntitySpecRelation relation) {
         return Optional.fromNullable(relations.get(relation));
     }
 
+    public Map<EntitySpecRelation, List<EntitySpec>> relations() {
+        return ImmutableMap.copyOf(this.relations);
+    }
+
     private void addRelationSpec(EntitySpecRelation relationType, EntitySpec targetSpec) {
-        if(!relations.containsKey(relationType)) {
+        if (!relations.containsKey(relationType)) {
             addRelationType(relationType);
         }
         addTargetSpec(relationType, targetSpec);
@@ -66,7 +76,7 @@ public class EntitySpecRelations {
         relations.put(target, MutableList.<EntitySpec>of());
     }
 
-    public int numberOfRelations(){
+    public int numberOfRelations() {
         return relations.size();
     }
 

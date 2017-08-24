@@ -35,7 +35,7 @@ public interface PaasLocationConfig {
 
     @SetFromFlag("profile.instances")
     ConfigKey<Integer> REQUIRED_MEMORY = ConfigKeys.newIntegerConfigKey(
-            "memory", "Required memory to deploy the application (MB)", 512);
+            "memory", "Required memory to deploy the application (MB)", 1024);
 
     @SetFromFlag("profile.instances")
     ConfigKey<Integer> REQUIRED_DISK = ConfigKeys.newIntegerConfigKey(

@@ -31,6 +31,7 @@ import org.apache.brooklyn.api.location.Location;
 import org.apache.brooklyn.api.location.LocationSpec;
 import org.apache.brooklyn.api.policy.Policy;
 import org.apache.brooklyn.api.policy.PolicySpec;
+import org.apache.brooklyn.api.relations.EntitySpecRelation;
 import org.apache.brooklyn.api.relations.EntitySpecRelations;
 import org.apache.brooklyn.api.sensor.Enricher;
 import org.apache.brooklyn.api.sensor.EnricherSpec;
@@ -140,8 +141,19 @@ public class EntitySpec<T extends Entity> extends AbstractBrooklynObjectSpec<T,E
         
         if (otherSpec.getParent() != null) parent(otherSpec.getParent());
         if (otherSpec.getImplementation() != null) impl(otherSpec.getImplementation());
-        
+
+        if(otherSpec.getRelations()!= null) {
+
+            copyRelations(otherSpec);
+        }
+
         return this;
+    }
+
+    private void copyRelations(final EntitySpec<T> otherSpec) {
+        for(Map.Entry<EntitySpecRelation, List<EntitySpec>> entry : otherSpec.getRelations().relations().entrySet()) {
+            this.getRelations().addTargetRelationSpec(entry.getValue());
+        }
     }
 
     private List<EntitySpec<?>> copyFromSpecs(List<EntitySpec<?>> children) {
