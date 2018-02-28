@@ -29,8 +29,6 @@ import org.apache.brooklyn.core.mgmt.internal.LocalManagementContext;
 import org.apache.brooklyn.core.mgmt.rebind.RebindTestUtils;
 import org.apache.brooklyn.core.sensor.Sensors;
 import org.apache.brooklyn.core.test.entity.TestApplication;
-import org.apache.brooklyn.entity.java.VanillaJavaApp;
-import org.apache.brooklyn.entity.java.VanillaJavaAppImpl;
 import org.apache.brooklyn.entity.java.JavaOptsTest.TestingJavaOptsVanillaJavaAppImpl;
 import org.apache.brooklyn.policy.enricher.RollingTimeWindowMeanEnricher;
 import org.apache.brooklyn.test.EntityTestUtils;
@@ -161,7 +159,7 @@ public class VanillaJavaAppRebindTest {
             enrichers().add(new RollingTimeWindowMeanEnricher<Double>(this, PROCESS_CPU_TIME, AVG1, Duration.TEN_SECONDS));
         }
         @Override
-        protected void connectSensors() {
+        public void connectSensors() {
             super.connectSensors();
             LOG.info("connecting sensors for "+this);
             enrichers().add(new RollingTimeWindowMeanEnricher<Double>(this, PROCESS_CPU_TIME, AVG2, Duration.TEN_SECONDS));

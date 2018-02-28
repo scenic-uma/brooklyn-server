@@ -95,7 +95,7 @@ public class ScriptHelperTest extends BrooklynAppUnitTestSupport {
         }
 
         @Override
-        protected void connectSensors() {
+        public void connectSensors() {
             super.connectSensors();
             connectServiceUpIsRunning();
         }

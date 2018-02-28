@@ -20,7 +20,7 @@ package org.apache.brooklyn.entity.software.base;
 
 
 import com.google.common.collect.Iterables;
-import org.apache.brooklyn.api.location.Location;
+
 import org.apache.brooklyn.location.winrm.WinRmMachineLocation;
 
 public class VanillaWindowsProcessImpl extends SoftwareProcessImpl implements VanillaWindowsProcess {
@@ -44,13 +44,13 @@ public class VanillaWindowsProcessImpl extends SoftwareProcessImpl implements Va
     }
     
     @Override
-    protected void connectSensors() {
+    public void connectSensors() {
         super.connectSensors();
         connectServiceUpIsRunning();
     }
 
     @Override
-    protected void disconnectSensors() {
+    public void disconnectSensors() {
         disconnectServiceUpIsRunning();
         super.disconnectSensors();
     }

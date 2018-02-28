@@ -52,7 +52,7 @@ public class ChefSoloDriverToyMySqlEntity extends SoftwareProcessImpl implements
     }
 
     @Override
-    protected void connectSensors() {
+    public void connectSensors() {
         super.connectSensors();
         
         // TODO have a TaskFactoryFeed which reuses the IS_RUNNING_TASK
@@ -64,7 +64,7 @@ public class ChefSoloDriverToyMySqlEntity extends SoftwareProcessImpl implements
     }
     
     @Override
-    protected void disconnectSensors() {
+    public void disconnectSensors() {
         // TODO nicer way to disconnect
         if (upFeed != null) upFeed.stop();
         super.disconnectSensors();

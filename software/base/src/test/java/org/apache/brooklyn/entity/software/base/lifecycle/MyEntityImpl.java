@@ -40,13 +40,13 @@ public class MyEntityImpl extends SoftwareProcessImpl implements MyEntity {
     }
 
     @Override
-    protected void connectSensors() {
+    public void connectSensors() {
         super.connectSensors();
         connectServiceUpIsRunning();
     }
     
     @Override
-    protected void disconnectSensors() {
+    public void disconnectSensors() {
         super.disconnectSensors();
         disconnectServiceUpIsRunning();
     }

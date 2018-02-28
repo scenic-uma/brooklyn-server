@@ -28,7 +28,7 @@ public class EmptySoftwareProcessImpl extends SoftwareProcessImpl implements Emp
     }
 
     @Override
-    protected void connectSensors() {
+    public void connectSensors() {
         super.connectSensors();
         if (isSshMonitoringEnabled()) {
             connectServiceUpIsRunning();
@@ -38,7 +38,7 @@ public class EmptySoftwareProcessImpl extends SoftwareProcessImpl implements Emp
     }
 
     @Override
-    protected void disconnectSensors() {
+    public void disconnectSensors() {
         disconnectServiceUpIsRunning();
         super.disconnectSensors();
     }

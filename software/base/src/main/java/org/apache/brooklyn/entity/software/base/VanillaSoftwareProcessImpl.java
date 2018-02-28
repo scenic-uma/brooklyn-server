@@ -25,12 +25,12 @@ public class VanillaSoftwareProcessImpl extends SoftwareProcessImpl implements V
         return VanillaSoftwareProcessDriver.class;
     }
     @Override
-    protected void connectSensors() {
+    public void connectSensors() {
         super.connectSensors();
         connectServiceUpIsRunning();
     }
     @Override
-    protected void disconnectSensors() {
+    public void disconnectSensors() {
         disconnectServiceUpIsRunning();
         super.disconnectSensors();
     }

@@ -105,6 +105,16 @@ public class PaasLifecycleEffectorTasks extends AbstractLifecycleEffectorTasks {
         entity().getDriver().start();
     }
 
+    protected void restartProcess() {
+        log.info("RESTARTING lifecycle task: ");
+        entity().disconnectSensors();
+        entity().getDriver().restart();
+        entity().connectSensors();
+        entity().waitForServiceUp();
+        log.info("Restarted lifecycle task: ");
+
+    }
+
     protected void postStartProcess() {
         entity().postDriverStart();
         if (entity().connectedSensors) {
@@ -125,8 +135,24 @@ public class PaasLifecycleEffectorTasks extends AbstractLifecycleEffectorTasks {
      */
     @Override
     public void restart(ConfigBag parameters) {
-        //TODO
-    }
+        ServiceStateLogic.setExpectedState(entity(), Lifecycle.STARTING);
+        try {
+
+
+            DynamicTasks.queue("start (process)", new Runnable() {
+                @Override
+                public void run() {
+                    restartProcess();
+                }
+            });
+
+            DynamicTasks.waitForLast();
+            ServiceStateLogic.setExpectedState(entity(), Lifecycle.RUNNING);
+        } catch (Throwable t) {
+            ServiceStateLogic.setExpectedState(entity(), Lifecycle.ON_FIRE);
+            log.error("Error error restarting entity {}", entity());
+            throw Exceptions.propagate(t);
+        }    }
 
     @Override
     public void stop(ConfigBag parameters) {
@@ -148,7 +174,7 @@ public class PaasLifecycleEffectorTasks extends AbstractLifecycleEffectorTasks {
             });
 
             stopProcess();
-            postStopProcess();
+            postStopProcess(parameters);
             entity().setAttribute(SoftwareProcess.SERVICE_UP, false);
             ServiceStateLogic.setExpectedState(entity(), Lifecycle.STOPPED);
         } catch (Throwable t) {
@@ -212,8 +238,22 @@ public class PaasLifecycleEffectorTasks extends AbstractLifecycleEffectorTasks {
         return result;
     }
 
-    protected void postStopProcess() {
+    protected void postStopProcess(ConfigBag parameters) {
         entity().postStop();
+
+        if ((entity() != null)
+                && (entity().getDriver() != null)
+                && (applicationHasToBeDeleted(parameters))
+                && (entity().getDriver() instanceof ApplicationCloudFoundryDriver)) {
+            ((ApplicationCloudFoundryDriver) entity().getDriver()).deleteApplication();
+        }
+    }
+
+    private boolean applicationHasToBeDeleted(ConfigBag parameters) {
+        return parameters.containsKey(SoftwareProcess.StopSoftwareParameters.STOP_MACHINE_MODE)
+                && !parameters.get(SoftwareProcess.StopSoftwareParameters.STOP_MACHINE_MODE).equals(SoftwareProcess.StopSoftwareParameters.StopMode.NEVER);
+
+
     }
 
 

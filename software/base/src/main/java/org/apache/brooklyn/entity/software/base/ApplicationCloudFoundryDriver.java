@@ -47,5 +47,7 @@ public interface ApplicationCloudFoundryDriver extends SoftwareProcessDriver {
      */
     int getMemory();
 
+    String getApplicationName();
+
 }
 

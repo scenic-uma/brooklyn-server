@@ -455,7 +455,7 @@ public class BrooklynNodeImpl extends SoftwareProcessImpl implements BrooklynNod
     }
 
     @Override
-    protected void connectSensors() {
+    public void connectSensors() {
         super.connectSensors();
 
         // TODO what sensors should we poll?
@@ -514,7 +514,7 @@ public class BrooklynNodeImpl extends SoftwareProcessImpl implements BrooklynNod
     }
 
     @Override
-    protected void disconnectSensors() {
+    public void disconnectSensors() {
         super.disconnectSensors();
         disconnectServiceUpIsRunning();
         if (httpFeed != null) httpFeed.stop();

@@ -19,7 +19,6 @@
 package org.apache.brooklyn.entity.software.base;
 
 import org.apache.brooklyn.core.entity.lifecycle.Lifecycle;
-import org.apache.brooklyn.entity.software.base.SoftwareProcessImpl;
 
 public class DoNothingSoftwareProcessImpl extends SoftwareProcessImpl implements DoNothingSoftwareProcess {
 
@@ -29,7 +28,7 @@ public class DoNothingSoftwareProcessImpl extends SoftwareProcessImpl implements
     }
     
     @Override
-    protected void connectSensors() {
+    public void connectSensors() {
         super.connectSensors();
         if (getAttribute(SERVICE_STATE_ACTUAL) == Lifecycle.STARTING) {
             sensors().set(SERVICE_UP, true);

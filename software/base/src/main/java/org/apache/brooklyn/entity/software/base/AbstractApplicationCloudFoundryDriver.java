@@ -52,7 +52,7 @@ public abstract class AbstractApplicationCloudFoundryDriver
 
     protected abstract String getApplicationUrl();
 
-    protected abstract String getApplicationName();
+    public abstract String getApplicationName();
 
     public abstract String getBuildpack();
 
@@ -130,19 +130,25 @@ public abstract class AbstractApplicationCloudFoundryDriver
 
     @Override
     public void restart() {
-        // TODO: complete
+        if (getClient().getApplication(getApplicationName()).getState() == CloudApplication.AppState.STOPPED) {
+            getClient().startApplication(getApplicationName());
+        } else {
+            getClient().restartApplication(getApplicationName());
+        }
     }
 
     @Override
     public void stop() {
         super.stop();
         getClient().stopApplication(getApplicationName());
-        deleteApplication();
+        //deleteApplication();
     }
 
     @Override
     public void deleteApplication() {
+        log.info("************************ DELETING from driver-->" + getApplicationName());
         getClient().deleteApplication(getApplicationName());
+        log.info("************************ DELETED from driver-->" + getApplicationName());
     }
 
     protected String inferApplicationDomainUri(String name) {

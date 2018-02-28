@@ -291,7 +291,7 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
      * though the framework is pretty good about not calling when already connected. 
      * TODO improve the framework's feed system to detect duplicate additions
      */
-    protected void connectSensors() {
+    public void connectSensors() {
         connectedSensors = true;
     }
 
@@ -377,7 +377,7 @@ public abstract class SoftwareProcessImpl extends AbstractEntity implements Soft
     /**
      * For disconnecting from the running app. Will be called on stop.
      */
-    protected void disconnectSensors() {
+    public void disconnectSensors() {
         connectedSensors = false;
     }
 

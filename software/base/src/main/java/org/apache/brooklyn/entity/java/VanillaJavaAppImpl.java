@@ -75,7 +75,7 @@ public class VanillaJavaAppImpl extends SoftwareProcessImpl implements VanillaJa
     }
 
     @Override
-    protected void connectSensors() {
+    public void connectSensors() {
         super.connectSensors();
 
         if (((VanillaJavaAppDriver) getDriver()).isJmxEnabled()) {

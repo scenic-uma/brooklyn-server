@@ -28,7 +28,7 @@ public class LocalBrooklynNodeImpl extends BrooklynNodeImpl implements LocalBroo
     private static final String BROOKLYN_WEBCONSOLE_PASSWORD_KEY = "brooklyn.webconsole.security.user.%s.password";
 
     @Override
-    protected void connectSensors() {
+    public void connectSensors() {
         // Override management username and password from brooklyn.properties
         // TODO Why use BrooklynProperties, rather than StringConfigMap returned by mgmt.getConfig()?
         BrooklynProperties properties = ((ManagementContextInternal)getManagementContext()).getBrooklynProperties();

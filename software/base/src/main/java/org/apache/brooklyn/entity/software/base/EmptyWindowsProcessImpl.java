@@ -28,7 +28,7 @@ public class EmptyWindowsProcessImpl extends SoftwareProcessImpl implements Empt
     }
 
     @Override
-    protected void connectSensors() {
+    public void connectSensors() {
         super.connectSensors();
         if (isWinrmMonitoringEnabled()) {
             connectServiceUpIsRunning();
@@ -38,7 +38,7 @@ public class EmptyWindowsProcessImpl extends SoftwareProcessImpl implements Empt
     }
 
     @Override
-    protected void disconnectSensors() {
+    public void disconnectSensors() {
         disconnectServiceUpIsRunning();
         super.disconnectSensors();
     }

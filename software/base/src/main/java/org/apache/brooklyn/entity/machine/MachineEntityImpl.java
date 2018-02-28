@@ -59,7 +59,7 @@ public class MachineEntityImpl extends EmptySoftwareProcessImpl implements Machi
     }
 
     @Override
-    protected void connectSensors() {
+    public void connectSensors() {
         super.connectSensors();
 
         // Sensors linux-specific

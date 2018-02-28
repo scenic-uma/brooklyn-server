@@ -56,7 +56,7 @@ public class RestMockSimpleEntity extends SoftwareProcessImpl {
     }
     
     @Override
-    protected void connectSensors() {
+    public void connectSensors() {
         super.connectSensors();
         connectServiceUpIsRunning();
     }

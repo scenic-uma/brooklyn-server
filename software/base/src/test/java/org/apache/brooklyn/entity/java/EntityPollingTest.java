@@ -70,7 +70,8 @@ public class EntityPollingTest {
     public static class SubVanillaJavaApp extends VanillaJavaAppImpl {
         private JmxFeed feed;
         
-        @Override protected void connectSensors() {
+        @Override
+        public void connectSensors() {
             super.connectSensors();
    
             // Add a sensor that we can explicitly set in jmx
