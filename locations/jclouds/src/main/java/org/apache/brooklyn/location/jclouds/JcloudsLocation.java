@@ -1530,7 +1530,7 @@ public class JcloudsLocation extends AbstractCloudMachineProvisioningLocation im
                     logAvailableTemplates(config);
                 }
             } catch (Exception e2) {
-                LOG.warn("Error loading available images to report (following original error matching template which will be rethrown): "+e2, e2);
+                    LOG.warn("Error loading available images to report (following original error matching template which will be rethrown): "+e2, e2);
                 throw new IllegalStateException("Unable to access cloud "+this+" to resolve "+templateBuilder+": "+e, e);
             }
             throw new IllegalStateException("Unable to match required VM template constraints "+templateBuilder+" when trying to provision VM in "+this+"; "

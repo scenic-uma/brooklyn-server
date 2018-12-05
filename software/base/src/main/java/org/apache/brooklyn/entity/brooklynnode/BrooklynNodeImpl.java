@@ -229,7 +229,7 @@ public class BrooklynNodeImpl extends SoftwareProcessImpl implements BrooklynNod
             // we could wait for BrooklynTaskTags.getTasksInEntityContext(ExecutionManager, this).isEmpty();
             Task<?> stopEffectorTask = BrooklynTaskTags.getClosestEffectorTask(Tasks.current(), Startable.STOP);
             Task<?> topEntityTask = getTopEntityTask(stopEffectorTask);
-            getManagementContext().getExecutionManager().submit(new UnmanageTask(topEntityTask, this));
+            //getManagementContext().getExecutionManager().submit(new UnmanageTask(topEntityTask, this));
         }
     }
 
