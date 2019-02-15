@@ -292,7 +292,7 @@ public class ApplicationResource extends AbstractBrooklynRestResource implements
     private Response launch(String yaml, EntitySpec<? extends Application> spec) {
         try {
             Application app = EntityManagementUtils.createUnstarted(mgmt(), spec);
-            CreationResult<Application,Void> result = EntityManagementUtils.start(app);
+            /*CreationResult<Application,Void> result = EntityManagementUtils.start(app);
             waitForStart(app, Duration.millis(100));
 
             boolean isEntitled = Entitlements.isEntitled(
@@ -306,11 +306,11 @@ public class ApplicationResource extends AbstractBrooklynRestResource implements
             }
 
             log.info("Launched from YAML: " + yaml + " -> " + app + " (" + result.task() + ")");
-
+*/
             URI ref = serviceAbsoluteUriBuilder(ui.getBaseUriBuilder(), ApplicationApi.class, "get").build(app.getApplicationId());
             ResponseBuilder response = created(ref);
-            if (result.task() != null)
-                response.entity(TaskTransformer.fromTask(ui.getBaseUriBuilder()).apply(result.task()));
+  //          if (result.task() != null)
+   //             response.entity(TaskTransformer.fromTask(ui.getBaseUriBuilder()).apply(result.task()));
             return response.build();
         } catch (ConstraintViolationException e) {
             throw new UserFacingException(e);
